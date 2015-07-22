@@ -113,11 +113,7 @@ public final class POCUtil {
         c.update(b, 0, b.length);
         int ic = (int) c.getValue();
 
-        // "ignore" the extra LSBs by always setting to 1
-        // todo: make this configurable from command line
-        int ignore = ~(0xffff << (32 - crcsize));
-
-        ic = ic | ignore;
+        ic = ic >>> (32 - crcsize);
 
         ByteBuffer buffer = ByteBuffer.allocate(4);
         buffer.putInt(ic);

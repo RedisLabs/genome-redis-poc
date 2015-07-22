@@ -42,10 +42,6 @@ public class POCMain {
 
         POCMain pocMain = new POCMain(host,port);
 
-//        // debug
-//        for (int i = 32; i >  0; i--)
-//            System.out.println("i: " + i + ", crc32': " + POCUtil.hashKey("ABCDE", i).getBytes());
-
         try {
             pocMain.run(directory, crcsize);
         } catch (Exception e) {
@@ -79,7 +75,7 @@ public class POCMain {
         /*
         split the files in the directory into 10 lists
          */
-        final List<List<File>> partitionFiles =   POCUtil.chopIntoParts(files,50);  //Lists.partition(files, NUMBER_OF_THREADS);
+        final List<List<File>> partitionFiles =   POCUtil.chopIntoParts(files,NUMBER_OF_THREADS);  //Lists.partition(files, NUMBER_OF_THREADS);
 
         Thread[] readThreads = new Thread[NUMBER_OF_THREADS];
 
@@ -100,7 +96,7 @@ public class POCMain {
                     for (int j = 0; j < partitionFiles.get(currentItem).size(); j++) {
 
                         File currentFile =  partitionFiles.get(currentItem).get(j);
-
+                        System.out.println("[" + currentItem + "] " + currentFile.getAbsoluteFile());
                         /*
                         process current files
                          */
@@ -124,14 +120,13 @@ public class POCMain {
 
                                     // clear list
                                     lines.clear();
-                                    System.out.print(".");
 
                                 }
-                                // do the rest of the items
-                                if ( lines.size() > 0 )
-                                {
-                                    setHashs(lines,"",crcsize);
-                                }
+                            }
+                            // do the rest of the items
+                            if ( lines.size() > 0 )
+                            {
+                                setHashs(lines,"",crcsize);
                             }
 
                             /*
@@ -139,8 +134,6 @@ public class POCMain {
                              */
                             if ((fileCounter.incrementAndGet() % 100) == 0)
                                 System.out.println("Number of current files " + fileCounter.get());
-                            else
-                                System.out.print("#");
 
                         } catch (FileNotFoundException e) {
                             e.printStackTrace();
@@ -178,7 +171,6 @@ public class POCMain {
                             POCValue pocValueWrite = new POCValue(Integer.parseInt(freq), ie, oe);
                             hashValues.add(pocValueWrite.getRecord());
                         }
-
                         jedisClient.hset(keys,hashKeys,hashValues);
                     }
                 }
