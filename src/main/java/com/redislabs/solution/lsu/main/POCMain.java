@@ -60,9 +60,6 @@ public class POCMain {
 
     public void run(String directory, final int crcsize) throws Exception {
 
-
-
-
         /*
         this method will go over all files in the directory
          */
@@ -127,6 +124,7 @@ public class POCMain {
 
                                     // clear list
                                     lines.clear();
+                                    System.out.print(".");
 
                                 }
                                 // do the rest of the items
@@ -141,6 +139,8 @@ public class POCMain {
                              */
                             if ((fileCounter.incrementAndGet() % 100) == 0)
                                 System.out.println("Number of current files " + fileCounter.get());
+                            else
+                                System.out.print("#");
 
                         } catch (FileNotFoundException e) {
                             e.printStackTrace();
