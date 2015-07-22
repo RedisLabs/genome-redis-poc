@@ -105,7 +105,7 @@ public final class POCUtil {
         return (r);
     }
 
-    public static String hashKey(String k) {
+    public static String hashKey(String k, int crcsize) {
         //Convert string to bytes
         byte b[] = k.getBytes();
 
@@ -113,8 +113,11 @@ public final class POCUtil {
         c.update(b, 0, b.length);
         int ic = (int) c.getValue();
 
-        // "ignore" 2 LSB by always setting to 1
-        ic = ic | 3;
+        // "ignore" the extra LSBs by always setting to 1
+        // todo: make this configurable from command line
+        int ignore = ~(0xffff << (32 - crcsize));
+
+        ic = ic | ignore;
 
         ByteBuffer buffer = ByteBuffer.allocate(4);
         buffer.putInt(ic);

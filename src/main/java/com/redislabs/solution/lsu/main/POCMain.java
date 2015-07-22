@@ -32,20 +32,22 @@ public class POCMain {
 
     public static void main(String[] args) throws Exception {
 
-
-
-
-//        if ( args == null || args.length == 3 )
-//            throw new Exception("Error with input ");
+        if ( args == null || args.length == 5 )
+            throw new Exception("Usage: host port data-directory crcsize");
 
         String host = args[0];
         int port = Integer.parseInt(args[1]);
         String directory = args[2];
+        int crcsize = Integer.parseInt(args[3]);
 
         POCMain pocMain = new POCMain(host,port);
 
+//        // debug
+//        for (int i = 32; i >  0; i--)
+//            System.out.println("i: " + i + ", crc32': " + POCUtil.hashKey("ABCDE", i).getBytes());
+
         try {
-            pocMain.run(directory);
+            pocMain.run(directory, crcsize);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -56,7 +58,7 @@ public class POCMain {
      * this code will be based on the line format and will not be generic
      */
 
-    public void run(String directory) throws Exception {
+    public void run(String directory, final int crcsize) throws Exception {
 
 
 
@@ -77,13 +79,10 @@ public class POCMain {
          */
         List<File> files =  new ArrayList<>(Arrays.asList(listOfFiles));
 
-
         /*
         split the files in the directory into 10 lists
          */
         final List<List<File>> partitionFiles =   POCUtil.chopIntoParts(files,50);  //Lists.partition(files, NUMBER_OF_THREADS);
-
-
 
         Thread[] readThreads = new Thread[NUMBER_OF_THREADS];
 
@@ -123,7 +122,7 @@ public class POCMain {
                                 if ( lines.size() == 20 )
                                 {
 
-                                    setHashs(lines, line);
+                                    setHashs(lines, line, crcsize);
                                     //jedisClient.hset(POCUtil.hashKey(key1), POCUtil.encodeKey(key1), line);
 
                                     // clear list
@@ -133,7 +132,7 @@ public class POCMain {
                                 // do the rest of the items
                                 if ( lines.size() > 0 )
                                 {
-                                    setHashs(lines,"");
+                                    setHashs(lines,"",crcsize);
                                 }
                             }
 
@@ -156,7 +155,7 @@ public class POCMain {
                     System.out.println(totalStopwatch.elapsed(TimeUnit.MILLISECONDS));
                 }
 
-                private void setHashs(List<String> lines, String line) {
+                private void setHashs(List<String> lines, String line, int crcsize) {
                     List<String> keys = new ArrayList<>();
                     List<String> hashKeys = new ArrayList<>();
                     List<String> hashValues = new ArrayList<>();
@@ -164,7 +163,7 @@ public class POCMain {
 
                         String[] array =  lines.get(k).split("\t");
                         //location of key
-                        keys.add(POCUtil.hashKey(array[0]));
+                        keys.add(POCUtil.hashKey(array[0], crcsize));
                         hashKeys.add(POCUtil.encodeKey(array[0]));
 
 
