@@ -32,8 +32,8 @@ public class POCMain {
 
     public static void main(String[] args) throws Exception {
 
-        if ( args == null || args.length == 5 )
-            throw new Exception("Usage: host port data-directory crcsize");
+//        if ( args == null || args.length == 3 )
+//            throw new Exception("Usage: host port data-directory crcsize");
 
         String host = args[0];
         int port = Integer.parseInt(args[1]);
