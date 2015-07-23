@@ -23,10 +23,10 @@ public class POCValue {
         this.oe = oe.replaceAll(",", "");
     }
 
-    public POCValue(String r) {
+    public POCValue(byte[] r) {
         long record = 0;
         for (int i = 0; i < 7; i++) {
-            record = record | ((long) r.charAt(i) << 8 * i);
+            record = record | ((long) r[i] << 8 * i);
         }
 
         this.freq = (int) (record & 0xFFFFFFFF);

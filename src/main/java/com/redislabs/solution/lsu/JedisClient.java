@@ -129,18 +129,39 @@ public class JedisClient  {
 
     public void hset(List<byte[]> keys, List<byte[]> hashKeys, List<byte[]> hashValues) {
 
+        try {
+            Jedis jedis = pool.getResource();
+
+            Pipeline pipeline = jedis.pipelined();
+
+            for (int i = 0; i < keys.size(); i++) {
+                pipeline.hset(keys.get(i), hashKeys.get(i), hashValues.get(i));
+            }
+            pipeline.sync();
+            pool.returnResource(jedis);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public List<Object> hget(List<byte[]> keys, List<byte[]> hashKeys) {
+
         Jedis jedis = pool.getResource();
+
         Pipeline pipeline = jedis.pipelined();
 
         for (int i = 0; i < keys.size(); i++) {
 
-            pipeline.hset(keys.get(i), hashKeys.get(i), hashValues.get(i));
+            pipeline.hget(keys.get(i), hashKeys.get(i));
         }
 
-            pipeline.sync();
+        List<Object> results = pipeline.syncAndReturnAll();
 
         pool.returnResource(jedis);
 
+        return results;
     }
+
 
 }
