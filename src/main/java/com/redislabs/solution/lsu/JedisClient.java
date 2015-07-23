@@ -130,13 +130,15 @@ public class JedisClient  {
     public void hset(List<byte[]> keys, List<byte[]> hashKeys, List<byte[]> hashValues) {
 
         Jedis jedis = pool.getResource();
+        Pipeline pipeline = jedis.pipelined();
 
         for (int i = 0; i < keys.size(); i++) {
 
-            Pipeline pipeline = jedis.pipelined();
             pipeline.hset(keys.get(i), hashKeys.get(i), hashValues.get(i));
-            pipeline.sync();
         }
+
+            pipeline.sync();
+
         pool.returnResource(jedis);
 
     }
