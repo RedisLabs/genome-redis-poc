@@ -113,7 +113,21 @@ public class JedisClient  {
 
     }
 
-    public void hset(List<String> keys, List<String> hashKeys, List<String> hashValues) {
+//    public void hset(List<String> keys, List<String> hashKeys, List<String> hashValues) {
+//
+//        Jedis jedis = pool.getResource();
+//
+//        for (int i = 0; i < keys.size(); i++) {
+//
+//            Pipeline pipeline = jedis.pipelined();
+//            pipeline.hset(keys.get(i), hashKeys.get(i), hashValues.get(i));
+//            pipeline.sync();
+//        }
+//        pool.returnResource(jedis);
+//
+//    }
+
+    public void hset(List<byte[]> keys, List<byte[]> hashKeys, List<byte[]> hashValues) {
 
         Jedis jedis = pool.getResource();
 
@@ -126,4 +140,5 @@ public class JedisClient  {
         pool.returnResource(jedis);
 
     }
+
 }

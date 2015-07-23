@@ -1,6 +1,7 @@
 
 package com.redislabs.solution.lsu.main;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Iterables;
 import com.redislabs.solution.lsu.JedisClient;
 import com.redislabs.solution.lsu.objects.POCValue;
 import com.redislabs.solution.lsu.util.POCUtil;
@@ -18,10 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class POCMain {
 
-    private final int NUMBER_OF_THREADS = 50;
     final private JedisClient jedisClient;
-
-
 
     public POCMain(String host, int port){
 
@@ -33,17 +31,18 @@ public class POCMain {
     public static void main(String[] args) throws Exception {
 
 //        if ( args == null || args.length == 3 )
-//            throw new Exception("Usage: host port data-directory crcsize");
+//            throw new Exception("Usage: host port data-directory crcsize threads");
 
         String host = args[0];
         int port = Integer.parseInt(args[1]);
         String directory = args[2];
         int crcsize = Integer.parseInt(args[3]);
+        int nthreads = Integer.parseInt(args[4]);
 
         POCMain pocMain = new POCMain(host,port);
 
         try {
-            pocMain.run(directory, crcsize);
+            pocMain.run(directory, crcsize, nthreads);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -54,7 +53,7 @@ public class POCMain {
      * this code will be based on the line format and will not be generic
      */
 
-    public void run(String directory, final int crcsize) throws Exception {
+    public void run(String directory, final int crcsize, int nthreads) throws Exception {
 
         /*
         this method will go over all files in the directory
@@ -70,14 +69,14 @@ public class POCMain {
         /*
         get a list of all files in this directory
          */
-        List<File> files =  new ArrayList<>(Arrays.asList(listOfFiles));
+        List<File> files =  Arrays.asList(listOfFiles);
 
         /*
         split the files in the directory into 10 lists
          */
-        final List<List<File>> partitionFiles =   POCUtil.chopIntoParts(files,NUMBER_OF_THREADS);  //Lists.partition(files, NUMBER_OF_THREADS);
+        final List<List<File>> partitionFiles = POCUtil.chopIntoParts(files, nthreads);  //Lists.partition(files, NUMBER_OF_THREADS);
 
-        Thread[] readThreads = new Thread[NUMBER_OF_THREADS];
+        Thread[] readThreads = new Thread[nthreads];
 
         final AtomicInteger counter = new AtomicInteger(0);
         final AtomicInteger fileCounter = new AtomicInteger(0);
@@ -96,17 +95,18 @@ public class POCMain {
                     for (int j = 0; j < partitionFiles.get(currentItem).size(); j++) {
 
                         File currentFile =  partitionFiles.get(currentItem).get(j);
-                        System.out.println("[" + currentItem + "] " + currentFile.getAbsoluteFile());
+                        System.out.println("[" + currentItem + "] reading: " + currentFile.getAbsoluteFile());
                         /*
                         process current files
                          */
-                        try (BufferedReader br = new BufferedReader(new FileReader(currentFile))) {
+                        try {
 
                             /*
                             line optimization using pipeline
                              */
                             List<String> lines = new ArrayList<>();
                             String line;
+                            BufferedReader br = new BufferedReader(new FileReader(currentFile));
                             while ((line = br.readLine()) != null) {
                                 // process the line.
 
@@ -115,25 +115,29 @@ public class POCMain {
                                 if ( lines.size() == 20 )
                                 {
 
-                                    setHashs(lines, line, crcsize);
+                                    setHashs(lines, crcsize);
                                     //jedisClient.hset(POCUtil.hashKey(key1), POCUtil.encodeKey(key1), line);
 
                                     // clear list
                                     lines.clear();
 
                                 }
+
+
                             }
+                            br.close();
+
                             // do the rest of the items
                             if ( lines.size() > 0 )
                             {
-                                setHashs(lines,"",crcsize);
+                                setHashs(lines, crcsize);
+                                lines.clear();
                             }
 
                             /*
                             increase file counter by 1 and and print every 100 files
                              */
-                            if ((fileCounter.incrementAndGet() % 100) == 0)
-                                System.out.println("Number of current files " + fileCounter.get());
+                            System.out.println("[" + currentItem + "] total of " + fileCounter.incrementAndGet() + " files processed by all threads");
 
                         } catch (FileNotFoundException e) {
                             e.printStackTrace();
@@ -148,10 +152,10 @@ public class POCMain {
                     System.out.println(totalStopwatch.elapsed(TimeUnit.MILLISECONDS));
                 }
 
-                private void setHashs(List<String> lines, String line, int crcsize) {
-                    List<String> keys = new ArrayList<>();
-                    List<String> hashKeys = new ArrayList<>();
-                    List<String> hashValues = new ArrayList<>();
+                private void setHashs(List<String> lines, int crcsize) {
+                    List<byte[]> keys = new ArrayList<>();
+                    List<byte[]> hashKeys = new ArrayList<>();
+                    List<byte[]> hashValues = new ArrayList<>();
                     for (int k = 0; k < lines.size(); k++) {
 
                         String[] array =  lines.get(k).split("\t");
@@ -165,20 +169,24 @@ public class POCMain {
                         String oe = array[3].replace("OE=","");
 
                         if ( freq == null || ie == null || oe   == null )
-                            System.out.print(line);
+                            System.out.print("Parser error - line=" + lines.get(k
+                            ));
                         else
                         {
                             POCValue pocValueWrite = new POCValue(Integer.parseInt(freq), ie, oe);
                             hashValues.add(pocValueWrite.getRecord());
                         }
-                        jedisClient.hset(keys,hashKeys,hashValues);
                     }
+                    jedisClient.hset(keys,hashKeys,hashValues);
                 }
 
             });
             readThreads[i].start();
 
         }
+
+        for (Thread readThread : readThreads)
+            readThread.join();
 
 
 //        for (int i = 0; i < listOfFiles.length; i++) {

@@ -32,14 +32,16 @@ public class POCValue {
         this.freq = (int) (record & 0xFFFFFFFF);
 
         int ieLength = (int) ((record >> 32) & 0xF);
-        char ieTmpValue = (char) ((record >> 40) & 0xFF);
-        this.ie = getValue(POCUtil.nbDecode(String.valueOf(ieTmpValue)), ieLength);
+        byte[] ieTmpValue = {(byte) ((record >> 40) & 0xFF)};
+        this.ie = POCUtil.nbDecode(ieTmpValue);
+        this.ie = this.ie.substring(0, ieLength);
 
         System.out.println(">" + ieTmpValue);
 
         int oeLength = (int) ((record >> 36) & 0xF);
-        char oeTmpValue = (char) ((record >> 48) & 0xFF);
-        this.oe = getValue(POCUtil.nbDecode(String.valueOf(oeTmpValue)), oeLength);
+        byte[] oeTmpValue = {(byte) ((record >> 48) & 0xFF)};
+        this.oe = POCUtil.nbDecode(oeTmpValue);
+        this.oe = this.oe.substring(0, oeLength);
     }
 
     public int getFreq() {
@@ -54,21 +56,21 @@ public class POCValue {
         return oe;
     }
 
-    public String getRecord () {
+    public byte[] getRecord () {
         long result = 0;
 
-        char[] charResult = new char [7];
+        byte[] charResult = new byte[7];
 
         try {
-            String eIe = POCUtil.encodeValue(ie);
-            String eOe = POCUtil.encodeValue(oe);
+            byte[] eIe = POCUtil.encodeValue(ie);
+            byte[] eOe = POCUtil.encodeValue(oe);
             byte bIe = 0;
             byte bOe = 0;
 
-            if (eIe.length() != 0)
-                bIe = eIe.getBytes()[0];
-            if (eOe.length() != 0)
-                bOe = eOe.getBytes()[0];
+            if (eIe.length != 0)
+                bIe = eIe[0];
+            if (eOe.length != 0)
+                bOe = eOe[0];
 
             result = freq |
                     ((long) ie.length() << 32) |
@@ -77,31 +79,14 @@ public class POCValue {
                     ((long) bOe << 48);
 
             for (int i=0; i< 7 ; i++){
-                charResult[i] = (char) ((result >> (8*i)) & 0xFF);
+                charResult[i] = (byte)((result >> (8*i)) & 0xFF);
             }
         } catch (Exception e) {
 
             e.printStackTrace();
         }
 
-        return(String.valueOf(charResult));
-    }
-
-
-    /**
-     * getValue
-     * @param elementValue
-     * @param length
-     * @return
-     */
-    private String getValue(String elementValue, int length ){
-        String value = "";
-
-        if (length > 0 && length < 5){
-            value = elementValue.substring(0, length);
-        }
-
-        return value;
+        return(charResult);
     }
 
 }

@@ -21,17 +21,17 @@ public final class POCUtil {
      * @param s
      * @return
      */
-    public static String nbEncode(String s) {
+    public static byte[] nbEncode(String s) {
         // expects a string of ACGT, length has to be multiple of 4 so complete bytes are used
-        String r = "";
         int b;
         int n, l;
 
         b = 0;
         l = s.length();
+        byte[] r = new byte[l / 4];
 
         if (l % 4 != 0)
-            return "";
+            return null;
 
         n = 0;
 
@@ -57,7 +57,8 @@ public final class POCUtil {
 
             n = n + 1;
             if (n == 4) {
-                r += (char) b;
+
+                r[i/4] = (byte) b;
                 n = 0;
             }
         }
@@ -70,14 +71,14 @@ public final class POCUtil {
      * @param s
      * @return
      */
-    public static String nbDecode(String s) {
+    public static String nbDecode(byte[] s) {
         String r = "";
         int l;
 
-        l = s.length();
+        l = s.length;
 
         for (int i = 0; i < l; i++) {
-            char c = s.charAt(i);
+            byte c = s[i];
             for (int j = 0; j < 4; j++) {
                 int d;
 
@@ -105,7 +106,7 @@ public final class POCUtil {
         return (r);
     }
 
-    public static String hashKey(String k, int crcsize) {
+    public static byte[] hashKey(String k, int crcsize) {
         //Convert string to bytes
         byte b[] = k.getBytes();
 
@@ -117,7 +118,7 @@ public final class POCUtil {
 
         ByteBuffer buffer = ByteBuffer.allocate(4);
         buffer.putInt(ic);
-        return (new String(buffer.array()));
+        return (buffer.array());
     }
 
     /**
@@ -125,7 +126,7 @@ public final class POCUtil {
      * @param s
      * @return
      */
-    public static String encodeKey(String s) {
+    public static byte[] encodeKey(String s) {
         // add an extra character to the 31 nb sequence to get 64 encoding
         String newKey = s + padding;
 
@@ -137,7 +138,7 @@ public final class POCUtil {
      * @param s
      * @return
      */
-    public static String encodeValue(String s) {
+    public static byte[] encodeValue(String s) {
         // add extra characters to get complete byte encoding
         int n = 4 - (s.length() % 4);
         if (n == 4)
