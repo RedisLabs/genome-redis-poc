@@ -4,6 +4,7 @@
 package com.redislabs.solution.lsu.objects;
 
 import com.redislabs.solution.lsu.util.POCUtil;
+import com.sun.xml.internal.ws.util.StringUtils;
 
 /**
  * POCValue
@@ -23,20 +24,26 @@ public class POCValue {
         this.oe = oe.replaceAll(",", "");
     }
 
+
+
     public POCValue(byte[] r) {
         long record = 0;
         for (int i = 0; i < 7; i++) {
-            record = record | ((long) r[i] << 8 * i);
+            record = record | (long) (r[i] & 0xFF) << (8*i);
         }
 
         this.freq = (int) (record & 0xFFFFFFFF);
 
         int ieLength = (int) ((record >> 32) & 0xF);
+
+        if (ieLength < 0 || ieLength > 4) {
+            System.out.println("invalid ieLength = " + ieLength);
+            System.exit(1);
+        }
+
         byte[] ieTmpValue = {(byte) ((record >> 40) & 0xFF)};
         this.ie = POCUtil.nbDecode(ieTmpValue);
         this.ie = this.ie.substring(0, ieLength);
-
-        System.out.println(">" + ieTmpValue);
 
         int oeLength = (int) ((record >> 36) & 0xF);
         byte[] oeTmpValue = {(byte) ((record >> 48) & 0xFF)};
@@ -72,15 +79,16 @@ public class POCValue {
             if (eOe.length != 0)
                 bOe = eOe[0];
 
-            result = freq |
-                    ((long) ie.length() << 32) |
-                    ((long) oe.length() << 36) |
-                    ((long) bIe << 40) |
-                    ((long) bOe << 48);
+            result = freq;
+            result = result | ((long) ie.length() << 32);
+            result = result | ((long) oe.length() << 36);
+            result = result | ((long) bIe << 40);
+            result = result | ((long) bOe << 48);
 
             for (int i=0; i< 7 ; i++){
                 charResult[i] = (byte)((result >> (8*i)) & 0xFF);
             }
+
         } catch (Exception e) {
 
             e.printStackTrace();

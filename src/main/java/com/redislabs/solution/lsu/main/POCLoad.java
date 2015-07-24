@@ -13,14 +13,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * POCMain
+ * POCLoad
  */
 
-public class POCReadMain {
+public class POCLoad {
 
     final private JedisClient jedisClient;
 
-    public POCReadMain(String host, int port){
+    public POCLoad(String host, int port){
 
         //init jedis
         jedisClient = new JedisClient(host,port);
@@ -38,10 +38,10 @@ public class POCReadMain {
         int crcsize = Integer.parseInt(args[3]);
         int nthreads = Integer.parseInt(args[4]);
 
-        POCReadMain pocMain = new POCReadMain(host,port);
+        POCLoad POCLoad = new POCLoad(host,port);
 
         try {
-            pocMain.run(directory, crcsize, nthreads);
+            POCLoad.run(directory, crcsize, nthreads);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -114,7 +114,7 @@ public class POCReadMain {
                                 if ( lines.size() == 20 )
                                 {
 
-                                    getHashs(lines, crcsize);
+                                    setHashs(lines, crcsize);
                                     //jedisClient.hset(POCUtil.hashKey(key1), POCUtil.encodeKey(key1), line);
 
                                     // clear list
@@ -129,7 +129,7 @@ public class POCReadMain {
                             // do the rest of the items
                             if ( lines.size() > 0 )
                             {
-                                getHashs(lines, crcsize);
+                                setHashs(lines, crcsize);
                                 lines.clear();
                             }
 
@@ -151,42 +151,32 @@ public class POCReadMain {
                     System.out.println(totalStopwatch.elapsed(TimeUnit.MILLISECONDS));
                 }
 
-                private void getHashs(List<String> lines, int crcsize) {
-
+                private void setHashs(List<String> lines, int crcsize) {
                     List<byte[]> keys = new ArrayList<>();
                     List<byte[]> hashKeys = new ArrayList<>();
-                    //List<byte[]> hashValues = new ArrayList<>();
+                    List<byte[]> hashValues = new ArrayList<>();
                     for (int k = 0; k < lines.size(); k++) {
 
                         String[] array =  lines.get(k).split("\t");
                         //location of key
-                        //keys.add(POCUtil.hashKey(array[0], crcsize));
-                        //hashKeys.add(POCUtil.encodeKey(array[0]));
-
-                        keys.add( POCUtil.hashKey(array[0],crcsize));
+                        keys.add(POCUtil.hashKey(array[0], crcsize));
                         hashKeys.add(POCUtil.encodeKey(array[0]));
 
-//                        String freq = array[1].replace("Freq=", "");
-//                        String ie = array[2].replace("IE=","");
-//                        String oe = array[3].replace("OE=","");
-//
-//                        if ( freq == null || ie == null || oe   == null )
-//                            System.out.print("Parser error - line=" + lines.get(k
-//                            ));
-//                        else
-//                        {
-//                            POCValue pocValueWrite = new POCValue(Integer.parseInt(freq), ie, oe);
-//                            hashValues.add(pocValueWrite.getRecord());
-//                        }
+
+                        String freq = array[1].replace("Freq=", "");
+                        String ie = array[2].replace("IE=","");
+                        String oe = array[3].replace("OE=","");
+
+                        if ( freq == null || ie == null || oe   == null )
+                            System.out.print("Parser error - line=" + lines.get(k
+                            ));
+                        else
+                        {
+                            POCValue pocValueWrite = new POCValue(Integer.parseInt(freq), ie, oe);
+                            hashValues.add(pocValueWrite.getRecord());
+                        }
                     }
-                    List<Object> results  =  jedisClient.hget(keys, hashKeys);
-
-                    for (Object res : results) {
-
-                        byte[] resByte = (byte[]) res;
-                        POCValue pocValue = new POCValue(resByte);
-
-                    }
+                    jedisClient.hset(keys,hashKeys,hashValues);
                 }
 
             });

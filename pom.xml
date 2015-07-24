@@ -16,7 +16,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>com.redislabs.solution.lsu.main.POCMain</mainClass>
+                            <mainClass>com.redislabs.solution.lsu.main.POCLoad</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

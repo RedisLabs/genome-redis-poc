@@ -1,7 +1,6 @@
 
 package com.redislabs.solution.lsu.main;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Iterables;
 import com.redislabs.solution.lsu.JedisClient;
 import com.redislabs.solution.lsu.objects.POCValue;
 import com.redislabs.solution.lsu.util.POCUtil;
@@ -14,14 +13,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * POCMain
+ * POCLoad
  */
 
-public class POCMain {
+public class POCRead {
 
     final private JedisClient jedisClient;
 
-    public POCMain(String host, int port){
+    public POCRead(String host, int port){
 
         //init jedis
         jedisClient = new JedisClient(host,port);
@@ -39,7 +38,7 @@ public class POCMain {
         int crcsize = Integer.parseInt(args[3]);
         int nthreads = Integer.parseInt(args[4]);
 
-        POCMain pocMain = new POCMain(host,port);
+        POCRead pocMain = new POCRead(host,port);
 
         try {
             pocMain.run(directory, crcsize, nthreads);
@@ -115,7 +114,7 @@ public class POCMain {
                                 if ( lines.size() == 20 )
                                 {
 
-                                    setHashs(lines, crcsize);
+                                    getHashs(lines, crcsize);
                                     //jedisClient.hset(POCUtil.hashKey(key1), POCUtil.encodeKey(key1), line);
 
                                     // clear list
@@ -130,7 +129,7 @@ public class POCMain {
                             // do the rest of the items
                             if ( lines.size() > 0 )
                             {
-                                setHashs(lines, crcsize);
+                                getHashs(lines, crcsize);
                                 lines.clear();
                             }
 
@@ -145,39 +144,47 @@ public class POCMain {
                             e.printStackTrace();
                         }
 
-
                     }
-                    
-                    
+
                     System.out.println(totalStopwatch.elapsed(TimeUnit.MILLISECONDS));
                 }
 
-                private void setHashs(List<String> lines, int crcsize) {
+                private void getHashs(List<String> lines, int crcsize) {
+
                     List<byte[]> keys = new ArrayList<>();
                     List<byte[]> hashKeys = new ArrayList<>();
-                    List<byte[]> hashValues = new ArrayList<>();
+                    //List<byte[]> hashValues = new ArrayList<>();
                     for (int k = 0; k < lines.size(); k++) {
 
                         String[] array =  lines.get(k).split("\t");
                         //location of key
-                        keys.add(POCUtil.hashKey(array[0], crcsize));
+                        //keys.add(POCUtil.hashKey(array[0], crcsize));
+                        //hashKeys.add(POCUtil.encodeKey(array[0]));
+
+                        keys.add(POCUtil.hashKey(array[0],crcsize));
                         hashKeys.add(POCUtil.encodeKey(array[0]));
 
-
-                        String freq = array[1].replace("Freq=", "");
-                        String ie = array[2].replace("IE=","");
-                        String oe = array[3].replace("OE=","");
-
-                        if ( freq == null || ie == null || oe   == null )
-                            System.out.print("Parser error - line=" + lines.get(k
-                            ));
-                        else
-                        {
-                            POCValue pocValueWrite = new POCValue(Integer.parseInt(freq), ie, oe);
-                            hashValues.add(pocValueWrite.getRecord());
-                        }
+//                        String freq = array[1].replace("Freq=", "");
+//                        String ie = array[2].replace("IE=","");
+//                        String oe = array[3].replace("OE=","");
+//
+//                        if ( freq == null || ie == null || oe   == null )
+//                            System.out.print("Parser error - line=" + lines.get(k
+//                            ));
+//                        else
+//                        {
+//                            POCValue pocValueWrite = new POCValue(Integer.parseInt(freq), ie, oe);
+//                            hashValues.add(pocValueWrite.getRecord());
+//                        }
                     }
-                    jedisClient.hset(keys,hashKeys,hashValues);
+                    List<Object> results  =  jedisClient.hget(keys, hashKeys);
+
+                    for (Object res : results) {
+
+                        byte[] resByte = (byte[]) res;
+                        POCValue pocValue = new POCValue(resByte);
+
+                    }
                 }
 
             });
