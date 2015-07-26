@@ -1,7 +1,7 @@
 
 package com.redislabs.solution.lsu.main;
 import com.google.common.base.Stopwatch;
-import com.redislabs.solution.lsu.JedisClient;
+import com.redislabs.solution.lsu.objects.JedisClient;
 import com.redislabs.solution.lsu.objects.POCValue;
 import com.redislabs.solution.lsu.util.POCUtil;
 
@@ -30,18 +30,19 @@ public class POCLoad {
     public static void main(String[] args) throws Exception {
 
 //        if ( args == null || args.length == 3 )
-//            throw new Exception("Usage: host port data-directory crcsize threads");
+//            throw new Exception("Usage: host port data-directory mod threads");
 
+        // todo: better command line argument parsing
         String host = args[0];
         int port = Integer.parseInt(args[1]);
         String directory = args[2];
-        int crcsize = Integer.parseInt(args[3]);
+        long mod = Integer.parseInt(args[3]);
         int nthreads = Integer.parseInt(args[4]);
 
         POCLoad POCLoad = new POCLoad(host,port);
 
         try {
-            POCLoad.run(directory, crcsize, nthreads);
+            POCLoad.run(directory, mod, nthreads);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -52,7 +53,7 @@ public class POCLoad {
      * this code will be based on the line format and will not be generic
      */
 
-    public void run(String directory, final int crcsize, int nthreads) throws Exception {
+    public void run(String directory, final long mod, int nthreads) throws Exception {
 
         /*
         this method will go over all files in the directory
@@ -108,13 +109,12 @@ public class POCLoad {
                             BufferedReader br = new BufferedReader(new FileReader(currentFile));
                             while ((line = br.readLine()) != null) {
                                 // process the line.
-
                                 lines.add(line);
 
                                 if ( lines.size() == 20 )
                                 {
 
-                                    setHashs(lines, crcsize);
+                                    setHashs(lines, mod);
                                     //jedisClient.hset(POCUtil.hashKey(key1), POCUtil.encodeKey(key1), line);
 
                                     // clear list
@@ -122,14 +122,13 @@ public class POCLoad {
 
                                 }
 
-
                             }
                             br.close();
 
                             // do the rest of the items
                             if ( lines.size() > 0 )
                             {
-                                setHashs(lines, crcsize);
+                                setHashs(lines, mod);
                                 lines.clear();
                             }
 
@@ -151,7 +150,7 @@ public class POCLoad {
                     System.out.println(totalStopwatch.elapsed(TimeUnit.MILLISECONDS));
                 }
 
-                private void setHashs(List<String> lines, int crcsize) {
+                private void setHashs(List<String> lines, long mod) {
                     List<byte[]> keys = new ArrayList<>();
                     List<byte[]> hashKeys = new ArrayList<>();
                     List<byte[]> hashValues = new ArrayList<>();
@@ -159,7 +158,7 @@ public class POCLoad {
 
                         String[] array =  lines.get(k).split("\t");
                         //location of key
-                        keys.add(POCUtil.hashKey(array[0], crcsize));
+                        keys.add(POCUtil.hashKey(array[0], mod));
                         hashKeys.add(POCUtil.encodeKey(array[0]));
 
 

@@ -1,4 +1,4 @@
-package com.redislabs.solution.lsu;
+package com.redislabs.solution.lsu.objects;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -10,12 +10,18 @@ import java.util.List;
 /**
  * Created by Guy on 12/14/2014.
  */
-public class JedisClient  {
+
+// add lettuce for better performance
+public class JedisClient implements RedisClient {
 
     JedisPool pool;
-    //Jedis jedis=null;
 
     public JedisClient(String host, int port) {
+        setup(host, port);
+    }
+
+    @Override
+    public void setup(String host, int port) {
 
         JedisPoolConfig poolConfig=new JedisPoolConfig();
 
@@ -29,7 +35,6 @@ public class JedisClient  {
         poolConfig.setMaxTotal(500);
 
         pool = new JedisPool(poolConfig, host , port,10000);
-        //jedis = new Jedis(host,port);
 
     }
 
@@ -113,55 +118,38 @@ public class JedisClient  {
 
     }
 
-//    public void hset(List<String> keys, List<String> hashKeys, List<String> hashValues) {
-//
-//        Jedis jedis = pool.getResource();
-//
-//        for (int i = 0; i < keys.size(); i++) {
-//
-//            Pipeline pipeline = jedis.pipelined();
-//            pipeline.hset(keys.get(i), hashKeys.get(i), hashValues.get(i));
-//            pipeline.sync();
-//        }
-//        pool.returnResource(jedis);
-//
-//    }
-
+    @Override
     public void hset(List<byte[]> keys, List<byte[]> hashKeys, List<byte[]> hashValues) {
 
         try {
             Jedis jedis = pool.getResource();
-
             Pipeline pipeline = jedis.pipelined();
 
             for (int i = 0; i < keys.size(); i++) {
                 pipeline.hset(keys.get(i), hashKeys.get(i), hashValues.get(i));
             }
+
             pipeline.sync();
             pool.returnResource(jedis);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
+    @Override
     public List<Object> hget(List<byte[]> keys, List<byte[]> hashKeys) {
 
         Jedis jedis = pool.getResource();
-
         Pipeline pipeline = jedis.pipelined();
 
         for (int i = 0; i < keys.size(); i++) {
-
             pipeline.hget(keys.get(i), hashKeys.get(i));
         }
 
         List<Object> results = pipeline.syncAndReturnAll();
-
         pool.returnResource(jedis);
 
         return results;
     }
-
-
 }

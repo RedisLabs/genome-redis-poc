@@ -50,6 +50,7 @@ public final class POCUtil {
                     break;
                 default:
                     System.out.println("nbEncode: Invalid character: <"+ c + ">. The key is:<" + s + ">" );
+                    System.exit(1);
                     break;
             }
 
@@ -98,6 +99,7 @@ public final class POCUtil {
                         break;
                     default:
                         System.out.println("nbDecode: Invalid character: <"+ d + ">. The key is:<" + s + ">" );
+                        System.exit(1);
                         break;
                 }
             }
@@ -106,18 +108,25 @@ public final class POCUtil {
         return (r);
     }
 
-    public static byte[] hashKey(String k, int crcsize) {
-        //Convert string to bytes
-        byte b[] = k.getBytes();
+    public static byte[] hashKey(String k, long m) {
+        byte[] b = k.getBytes();
+        int l = k.length();
+        long r;
+        int ir;
 
-        Checksum c = new CRC32();
-        c.update(b, 0, b.length);
-        int ic = (int) c.getValue();
+        Checksum c1 = new CRC32();
+        Checksum c2 = new CRC32();
+        c1.update(b, 0, l/2);
+        c2.update(b, l/2, l/2 + l%2);
 
-        ic = ic >>> (32 - crcsize);
+        r = c1.getValue() << 32 | c2.getValue() & 0xFFFFFFFF;
+        r %= m;
+        ir = (int) Math.abs(r);
 
+        if (ir == 0xFFFFFFFF)
+            System.out.println(Long.toBinaryString(r));
         ByteBuffer buffer = ByteBuffer.allocate(4);
-        buffer.putInt(ic);
+        buffer.putInt(ir);
         return (buffer.array());
     }
 
