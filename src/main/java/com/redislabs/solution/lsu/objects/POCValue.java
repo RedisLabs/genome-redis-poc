@@ -4,7 +4,6 @@
 package com.redislabs.solution.lsu.objects;
 
 import com.redislabs.solution.lsu.util.POCUtil;
-import com.sun.xml.internal.ws.util.StringUtils;
 
 /**
  * POCValue
