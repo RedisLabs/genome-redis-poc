@@ -33,16 +33,31 @@ public class POCLoad {
 //            throw new Exception("Usage: host port data-directory mod threads");
 
         // todo: better command line argument parsing
+
         String host = args[0];
         int port = Integer.parseInt(args[1]);
         String directory = args[2];
         long mod = Integer.parseInt(args[3]);
         int nthreads = Integer.parseInt(args[4]);
+        boolean readFiles = false;
+        if (args[5].toString().equalsIgnoreCase("true"))
+            readFiles = true;
+        int pipeLineSize=Integer.parseInt(args[6]);
 
         POCLoad POCLoad = new POCLoad(host,port);
 
+        System.out.println("input parameters ");
+        System.out.println("------------------------------------------");
+        System.out.println(" host name    " + host);
+        System.out.println(" port         " + port);
+        System.out.println(" directory    " + directory);
+        System.out.println(" numOfThreads " + nthreads);
+        System.out.println(" read only    " + readFiles);
+        System.out.println(" pipeline     " + pipeLineSize);
+
+
         try {
-            POCLoad.run(directory, mod, nthreads);
+            POCLoad.run(directory, mod, nthreads,readFiles,pipeLineSize);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -53,7 +68,7 @@ public class POCLoad {
      * this code will be based on the line format and will not be generic
      */
 
-    public void run(String directory, final long mod, int nthreads) throws Exception {
+    public void run(String directory, final long mod, int nthreads, final boolean readFiles, final int pipelineSize) throws Exception {
 
         /*
         this method will go over all files in the directory
@@ -111,11 +126,12 @@ public class POCLoad {
                                 // process the line.
                                 lines.add(line);
 
-                                if ( lines.size() == 20 )
+                                if ( lines.size() == pipelineSize )
                                 {
-
-                                    setHashs(lines, mod);
-                                    //jedisClient.hset(POCUtil.hashKey(key1), POCUtil.encodeKey(key1), line);
+                                    if ( readFiles )
+                                        getHashs(lines, mod);
+                                    else
+                                       setHashs(lines, mod);
 
                                     // clear list
                                     lines.clear();
@@ -128,7 +144,18 @@ public class POCLoad {
                             // do the rest of the items
                             if ( lines.size() > 0 )
                             {
-                                setHashs(lines, mod);
+                                /*
+                                this try and catch will make sure that if there is a faulty line we will still continue continue
+                                 */
+                                try {
+                                    if ( readFiles)
+                                        getHashs(lines, mod);
+                                    else
+                                        setHashs(lines, mod);
+
+                                } catch (Exception e) {
+                                    System.out.println("issue with this line " + line);
+                                }
                                 lines.clear();
                             }
 
@@ -150,34 +177,67 @@ public class POCLoad {
                     System.out.println(totalStopwatch.elapsed(TimeUnit.MILLISECONDS));
                 }
 
+                private String[] parseLine(String l) {
+                    String r[] = l.split("\t");
+                    assert r.length == 4;
+
+                    r[1] = r[1].replace("Freq=", "");
+                    r[2] = r[2].replace("IE=","");
+                    r[3] = r[3].replace("OE=", "");
+
+                    return(r);
+                }
+
                 private void setHashs(List<String> lines, long mod) {
                     List<byte[]> keys = new ArrayList<>();
                     List<byte[]> hashKeys = new ArrayList<>();
                     List<byte[]> hashValues = new ArrayList<>();
+
                     for (int k = 0; k < lines.size(); k++) {
 
-                        String[] array =  lines.get(k).split("\t");
+                        String[] line =  parseLine(lines.get(k));
+
                         //location of key
-                        keys.add(POCUtil.hashKey(array[0], mod));
-                        hashKeys.add(POCUtil.encodeKey(array[0]));
+                        keys.add(POCUtil.hashKey(line[0], mod));
+                        hashKeys.add(POCUtil.encodeKey(line[0]));
 
-
-                        String freq = array[1].replace("Freq=", "");
-                        String ie = array[2].replace("IE=","");
-                        String oe = array[3].replace("OE=","");
-
-                        if ( freq == null || ie == null || oe   == null )
-                            System.out.print("Parser error - line=" + lines.get(k
-                            ));
-                        else
                         {
-                            POCValue pocValueWrite = new POCValue(Integer.parseInt(freq), ie, oe);
+                            POCValue pocValueWrite = new POCValue(Integer.parseInt(line[1]), line[2], line[3]);
                             hashValues.add(pocValueWrite.getRecord());
                         }
                     }
-                    jedisClient.hset(keys,hashKeys,hashValues);
+                    jedisClient.hset(keys, hashKeys, hashValues);
                 }
+                private void getHashs(List<String> lines, long mod) {
 
+                    List<byte[]> keys = new ArrayList<>();
+                    List<byte[]> hashKeys = new ArrayList<>();
+
+                    String[] line = new String[0];
+
+                    for (int k = 0; k < lines.size(); k++) {
+
+                        line = parseLine(lines.get(k));
+
+                        keys.add(POCUtil.hashKey(line[0], mod));
+                        hashKeys.add(POCUtil.encodeKey(line[0]));
+
+                    }
+                    List<Object> results  =  jedisClient.hget(keys, hashKeys);
+
+                    for (Object res : results) {
+
+                        byte[] resByte = (byte[]) res;
+
+                        if (resByte.length != 7) {
+                            // the following will work properly **only** if pipelining == 1
+                            System.out.println("Error reading record, invalid length: " + resByte.length);
+                            System.out.println(line[0] + "\t" + line[1] + "\t" + line[2] + "\t" + line[3]);
+                        } else {
+                            POCValue pocValue = new POCValue(resByte);
+                        }
+                    }
+                }
             });
             readThreads[i].start();
 
