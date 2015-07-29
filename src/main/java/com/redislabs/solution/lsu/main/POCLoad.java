@@ -18,7 +18,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class POCLoad {
 
+    /*
+    input params
+     */
+    private static String host;
+    private static int port;
+    private static long mod;
+    private static int numOfThreads;
+    private static boolean readFiles;
+    private static int pipeLineSize;
+    private static String directory;
+
+
     final private JedisClient jedisClient;
+
 
     public POCLoad(String host, int port){
 
@@ -29,41 +42,49 @@ public class POCLoad {
 
     public static void main(String[] args) throws Exception {
 
-//        if ( args == null || args.length == 3 )
-//            throw new Exception("Usage: host port data-directory mod threads");
 
         // todo: better command line argument parsing
-
-        String host = args[0];
-        int port = Integer.parseInt(args[1]);
-        String directory = args[2];
-        long mod = Integer.parseInt(args[3]);
-        int nthreads = Integer.parseInt(args[4]);
-        boolean readFiles = false;
-        if (args[5].toString().equalsIgnoreCase("true"))
-            readFiles = true;
-        int pipeLineSize=Integer.parseInt(args[6]);
+        validateAndSetArguments(args);
 
         POCLoad POCLoad = new POCLoad(host,port);
 
-        System.out.println("input parameters ");
-        System.out.println("------------------------------------------");
-        System.out.println(" host name    " + host);
-        System.out.println(" port         " + port);
-        System.out.println(" directory    " + directory);
-        System.out.println(" numOfThreads " + nthreads);
-        System.out.println(" read only    " + readFiles);
-        System.out.println(" pipeline     " + pipeLineSize);
-
-
         try {
-            POCLoad.run(directory, mod, nthreads,readFiles,pipeLineSize);
+            POCLoad.run(directory, mod, numOfThreads,readFiles,pipeLineSize);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
 
     }
+
+    private static void validateAndSetArguments(String[] args) {
+
+        //        if ( args == null || args.length == 3 )
+//            throw new Exception("Usage: host port data-directory mod threads");
+
+
+        host = args[0];
+        port = Integer.parseInt(args[1]);
+        directory = args[2];
+        mod = Long.parseLong(args[3]);
+        numOfThreads = Integer.parseInt(args[4]);
+        readFiles = false;
+        if (args[5].toString().equalsIgnoreCase("true"))
+            readFiles = true;
+        pipeLineSize=Integer.parseInt(args[6]);
+
+        System.out.println("input parameters ");
+        System.out.println("------------------------------------------");
+        System.out.println(" host name    " + host);
+        System.out.println(" port         " + port);
+        System.out.println(" directory    " + directory);
+        System.out.println(" numOfThreads " + numOfThreads);
+        System.out.println(" read only    " + readFiles);
+        System.out.println(" pipeline     " + pipeLineSize);
+
+
+    }
+
     /**
      * this code will be based on the line format and will not be generic
      */
@@ -229,9 +250,9 @@ public class POCLoad {
 
                         byte[] resByte = (byte[]) res;
 
-                        if (resByte.length != 7) {
+                        if (resByte == null ||  resByte.length != 7) {
                             // the following will work properly **only** if pipelining == 1
-                            System.out.println("Error reading record, invalid length: " + resByte.length);
+                            //System.out.println("Error reading record, invalid length: " + resByte);
                             System.out.println(line[0] + "\t" + line[1] + "\t" + line[2] + "\t" + line[3]);
                         } else {
                             POCValue pocValue = new POCValue(resByte);
