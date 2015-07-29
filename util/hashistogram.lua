@@ -8,6 +8,8 @@ KEYS[] = none
 ARGV[] =
   #1 - number of SCAN iterations, 0 for all (default is 0)
 
+Usage example, 10 iterations = ~100 keys (awk optional but provides .csv)
+redis-cli --eval hashistogram.lua , 10 | awk '/^.*: ([:digit]?).*: ([:digit:]?)/ { print substr($5, 1, length($5)-1) ", " $3; }'
 ]]--
 
 local h = {}
