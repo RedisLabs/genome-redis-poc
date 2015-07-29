@@ -57,10 +57,13 @@ public class POCLoad {
 
     }
 
-    private static void validateAndSetArguments(String[] args) {
+    private static void validateAndSetArguments(String[] args) throws Exception {
 
-        //        if ( args == null || args.length == 3 )
-//            throw new Exception("Usage: host port data-directory mod threads");
+       if ( args == null || args.length != 7 )
+       {
+           throw new Exception("example usage {host name } {port} {/directory/} {modulo} {number of threads} { true=read false=write } {pipeline} ");
+       }
+
 
 
         host = args[0];
