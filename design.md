@@ -37,7 +37,18 @@ To store the value, the following 56 bit record (R) will be used:
 * 8 bits for I value - 40..47
 * 8 bits for O value - 48..53
 
-Note: although only 3 bits are needed for IE and OE sizes, we'll use a 4 to align the record bytewise
+Note: although only 3 bits are needed for IE and OE sizes, we'll use 4 bits to align the record bytewise (7 bytes total).
+
+Future improvements:
+
+Analysis of the full dataset suggests that IE and OE are ordered sets. The total number of possible permutations is therefore 65 for each value. A possible space optimization for shaving an additional byte would be to use the following record structure with a static dictionary:
+* 32 bits for F - unchanged
+* 7 bits for IE
+* 7 bits for OE
+
+Total: 46 bits (aligned to 6 bytes) 
+
+Furthermore, the data suggests that Freq can be packed using only 3 bytes.
 
 Redis sizing
 ===
@@ -46,7 +57,7 @@ Hash buckets
 ---
 To reduce the consumption of memory due to the number of keys in the database the input KV pairs will be stored in hash "buckets". The key of each such hash (hK) is obtained using the function `h(NE(K))`, where `h` is the hash function crc32. Since crc32's output checksum is 32 bits long and we're interested in keeping the keyspace to 2^30 keys, we'll use only the 30 most significant bits of the checksum as `hK`.
 
-P8 Redis overheads
+Redis overheads
 ---
 * Per hash bucket key: 36 bytes
 * Ziplist: 12 + 18 * n bytes
